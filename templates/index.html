@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<html>
+ <head>
+       <meta charset="UTF-8">
+        <title> Home Page</title>
+ </head>
+ <body>
+        <h1> High Value Items</h1>
+              <p>{% for table in tables %}
+              {{titles[loop.index]}}
+              {{ table|safe }}
+              {% endfor %}</p>
+
+ </body>
+
+
+</html>
