@@ -1,0 +1,82 @@
+Description: >
+  testing flask app
+Parameters:
+
+    EnvironmentName:
+        Description: An environment name that will be prefixed to resource names
+        Type: String
+
+    VpcCIDR:
+        Description: Please enter the IP range (CIDR notation) for this VPC
+        Type: String
+        Default: 10.0.0.0/16
+
+    PublicSubnet1CIDR:
+        Description: Please enter the IP range (CIDR notation) for the public subnet in the first Availability Zone
+        Type: String
+        Default: 10.0.0.0/24
+
+    KeyPairName:
+        Description: Keypair for Linux bastion host
+        Type: AWS::EC2::KeyPair::KeyName
+        Default: flaskapp
+Resources:
+  WebServerSecGroup:
+    DeletionPolicy: Retain
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: Allow http secgroup
+      VpcId:
+        Fn::ImportValue:
+          !Sub "${EnvironmentName}-VPCID"
+      SecurityGroupIngress:
+      - IpProtocol: tcp
+        FromPort: 80
+        ToPort: 80
+        CidrIp: 0.0.0.0/0
+      - IpProtocol: tcp
+        FromPort: 8080
+        ToPort: 8080
+        CidrIp: 0.0.0.0/0
+      SecurityGroupEgress:
+      - IpProtocol: tcp
+        FromPort: 80
+        ToPort: 80
+        CidrIp: 0.0.0.0/0
+
+  FlaskAppEC2:
+    Type: AWS::EC2::Instance
+    DeletionPolicy: Retain
+    Properties:
+      ImageId: ami-05c424d59413a2876
+      KeyName: flaskapp
+      SecurityGroups:
+      - Ref: WebServerSecGroup
+      InstanceType: t2.micro
+      AvailabilityZone: eu-west-2
+      BlockDeviceMappings:
+      -
+        DeviceName: "/dev/sdk"
+        Ebs:
+         VolumeSize: '10'
+      UserData:
+        Fn::Base64: !Sub |
+            #!/bin/bash -xe
+            sudo apt-get update -y
+            sudo apt-get install unzip awscli -y
+            sudo apt-get install apache2 -y
+            sudo systemctl start apache2.service
+            sudo apt install python3-pip -y
+            sudo apt install python3.8 -y
+            pip3 install flask
+            sudo apt-get install git -y
+            cd /var/www/html
+            sudo git clone https://github.com/dinulhaque/flaskapp.git
+            sudo cp -a /var/www/html/flaskapp/. /var/www/html/
+            sudo pip3 install -r requirements.txt
+            export FLASK_APP=first.py
+            flask run --host=0.0.0.0 --port=8080
+
+
+
+
